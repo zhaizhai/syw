@@ -1,6 +1,86 @@
 from core import *
 import collections
 
+class RuleGen:
+    def __init__(self, initial, final):
+        self.initial = initial
+        self.final = final
+        self.internal_ref = RefTable()
+
+        self.unpack_vals = {}
+        for node in self.internal_ref.values():
+            if isinstance(node, VarArgsNode):
+                self.unpack_vals[node.name()] = 0
+
+    def unpack(self, node, n):
+        assert isinstance(node, VarArgsNode)
+
+        node_list = []
+        for i in xrange(n):
+            def sub_name(cur_node, depth=None):
+                if (isinstance(cur_node, ValueNode) 
+                    and cur_node.name() == node.var_name):
+                    cur_node.value = node.var_name + str(i)
+            pattern_copy = node.pattern.copy()
+            pattern_copy.recurse(sub_name)
+            node_list.append(pattern_copy)
+        return node_list
+                                      
+    def generate_rules(self, target):
+
+        def iter_children(rule_children, target_children):
+            if not rule_children and not target_children:
+                yield
+            if not rule_children:
+                return
+            
+            next = rule_children[0]
+            if isinstance(next, VarArgsNode):
+                assert isinstance(next.pattern, ValueNode)
+
+                for i in xrange(len(target_children) + 1):
+                    self.unpack_vals[next.name()] = i
+                    for _ in iter_children(rule_children[1:], target_children[i:]):
+                        yield
+            else:
+                if not target_children:
+                    return
+                for _ in iter_depth(next, target_children[0]):
+                    for __ in iter_children(rule_children[1:], target_children[1:]):
+                        yield
+            
+        def iter_depth(rule_node, target_node):
+            assert not isinstance(rule_node, VarArgsNode)
+            if isinstance(rule_node, FunctionNode):
+                if (not isinstance(target_node, FunctionNode) or rule_node.name() != target_node.name()):
+                    return
+            for _ in iter_children(rule_node.children, target_node.children):
+                yield
+
+        def do_unpack_layer(node):
+            new_children = []
+            for child in node.children:
+                if isinstance(child, VarArgsNode):
+                    val = self.unpack_vals[child.name()]
+                    new_children.extend(self.unpack(child, val))
+                else:
+                    do_unpack_layer(child)
+                    new_children.append(child)
+
+            node.children = new_children
+            for child in new_children:
+                child.parent = node
+
+        for _ in iter_depth(self.initial, target):
+            rule_initial = self.initial.copy()
+            do_unpack_layer(rule_initial)
+
+            rule_final = self.final.copy()
+            do_unpack_layer(rule_final)
+            
+            yield Rule(rule_initial, rule_final)
+        
+
 class Rule:
     def __init__(self, initial, final):
         self.initial = initial
@@ -86,28 +166,35 @@ class RuleParser:
 def apply_rule(node, rule):
     rule.map_onto(node)
     return rule.construct_result()
-    
 
+if __name__ == '__main__':
+    def sub(a, b):
+        return a - b
 
+    def add(a, b):
+        return a + b
 
-def print_node(node, depth=0):
-    print '--' * depth, node.name()
-    for n in node.children:
-        print_node(n, depth=(depth + 1))
+    def _sum(*n):
+        return sum(n)
 
+    def mult(x, y):
+        return x * y
 
-# def sub(a, b):
-#     return a - b
+    ft = RefTable()
+    ft.add_variable('add', Function('add', add, 2))
+    ft.add_variable('sub', Function('sub', sub, 2))
+    ft.add_variable('sum', Function('sum', _sum, None))
+    ft.add_variable('mult', Function('mult', mult, 2))
 
-# def add(a, b):
-#     return a + b
+    root = parse('add(x,add(*y,z))', ft)
+    root = parse('sum(sum(ww, wx, wy, wz), x, sum(yw, yx, yy, yz), z)', ft)
+    root = parse('mult(sum(w, x, y), z)', ft)
 
-# ft = RefTable()
-# ft.add_variable('add', Function('add', add, 2))
-# ft.add_variable('sub', Function('sub', sub, 2))
+    initial = parse('mult(sum(*a), b)', ft)
+    final = parse('sum(*mult(*a, b))', ft)
+    rg = RuleGen(initial, final)
+    rg.generate_rules(root)
 
-# root = parse('add(x,add(y,z))', ft)
-# print_node(root)
 
 # rule = Rule(parse('add(a,add(b,c))', ft), parse('add(add(a,b),c)', ft))
 # print_node(apply_rule(root, rule))

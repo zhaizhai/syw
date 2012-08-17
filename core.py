@@ -1,19 +1,13 @@
-class Function:
-    def __init__(self, name, fn, num_args, notation=None):
+class Function(object):
+    def __init__(self, name, fn, num_args):
         self.name = name
         self.fn = fn
         self.num_args = num_args
-        self.notation = notation
-
-        if self.notation is None:
-            self.notation = [name + '('] 
-            for x in zip(range(num_args), [','] * (num_args - 1) + [')']):
-                self.notation.extend(x)
-
+        
     def eval(self, *args):
         return self.fn(*args)
 
-class RefTable:
+class RefTable(object):
     def __init__(self):
         self.vars = {}
 
@@ -25,6 +19,12 @@ class RefTable:
             return self.vars[var]
         return None
 
+    def keys(self):
+        return self.vars.keys()
+
+    def values(self):
+        return self.vars.values()
+
     def reverse_lookup(self, val):
         for var in self.vars:
             if self.vars[var] is val:
@@ -35,7 +35,7 @@ class RefTable:
         self.vars = {}
 
 
-class Node:
+class Node(object):
     def __init__(self, parent=None):
         self.parent = parent
         self.children = []
@@ -45,6 +45,14 @@ class Node:
 
     def copy(self):
         raise NotImplementedError()
+
+    def get_ix_in_parent(self):
+        if self.parent is None:
+            return None
+        for i, child in enumerate(self.parent.children):
+            if child is self:
+                return i
+        raise Exception("Couldn't find self in parent's children!")
 
     def recurse(self, fn, depth=0):
         for child in self.children:
@@ -67,8 +75,11 @@ class Node:
 
 class ValueNode(Node):
     def __init__(self, value, **kw):
-        Node.__init__(self, **kw)
+        super(ValueNode, self).__init__(**kw)
         self.value = value
+
+    def __repr__(self):
+        return self.name()
 
     def name(self):
         if not isinstance(self.value, str):
@@ -80,20 +91,47 @@ class ValueNode(Node):
 
 class FunctionNode(Node):
     def __init__(self, fn, **kw):
-        Node.__init__(self, **kw)
+        super(FunctionNode, self).__init__(**kw)
         self.fn = fn
-        self.children = [None] * fn.num_args
+        self.children = ([None] * fn.num_args
+                         if fn.num_args is not None else
+                         [])
+
+    def __repr__(self):
+        return self.name()
 
     def name(self):
         return self.fn.name
 
     def copy(self):
         cp = FunctionNode(self.fn)
+        cp.children = [None] * len(self.children)
         for i, arg in enumerate(self.children):
             if arg:
                 cp.children[i] = arg.copy()
                 cp.children[i].parent = cp
         return cp
+
+class VarArgsNode(Node):
+    def __init__(self, var_name, pattern=None, **kw):
+        super(VarArgsNode, self).__init__(**kw)
+        self.var_name = var_name
+        self.pattern = pattern or ValueNode(var_name)
+
+    def __repr__(self):
+        return '*' + self.pattern.name()
+
+    def name(self):
+        return self.var_name
+
+    def copy(self):
+        return VarArgsNode(self.var_name, pattern=self.pattern.copy())
+
+    
+def print_node(node, depth=0):
+    print '--' * depth, node
+    for n in node.children:
+        print_node(n, depth=(depth + 1))
 
 def get_ancestry(n):
     if n is None:
@@ -111,13 +149,31 @@ def lca(n1, n2):
         ret = x1
     return ret
 
+def make_var_args_node(root):
+
+    def replace_var_arg(node):
+        if isinstance(node, VarArgsNode):
+            var_name = node.name()
+            node.substitute(node.pattern)
+            return var_name
+
+        ret = None
+        for child in node.children:
+            new_ret = replace_var_arg(child)
+            assert None in (ret, new_ret)
+            ret = ret or new_ret        
+        return ret
+    
+    var_name = replace_var_arg(root)
+    return VarArgsNode(var_name, pattern=root)
+
 def parse_helper(s, fn_table):
     # returns (node, remaining string)
 
     s = s.replace(' ', '')
 
     delim = 0
-    while delim < len(s) and s[delim] not in ['(', ',', ')']:
+    while delim < len(s) and s[delim] not in '(,)':
         delim += 1
     delim_char = s[delim] if delim < len(s) else None
 
@@ -125,6 +181,10 @@ def parse_helper(s, fn_table):
         return parse_helper(s[1:], fn_table)
 
     if delim_char == '(':
+        if s[0] == '*':
+            ret, s = parse_helper(s[1:], fn_table)
+            return make_var_args_node(ret), s
+
         # function token
         left = s.find('(')
         name = s[:left]
@@ -142,9 +202,13 @@ def parse_helper(s, fn_table):
         return (ret, s[1:])
     else:
         right = 0
-        while right < len(s) and s[right].isalnum():
+        while right < len(s) and s[right] not in '(,)':
             right += 1
-        return (ValueNode(s[:right]), s[right:])
+        
+        node = (VarArgsNode(s[1:right]) 
+                if s[0] == '*' else
+                ValueNode(s[:right]))
+        return (node, s[right:])
         
 def parse(s, fn_table):
     ret, left = parse_helper(s, fn_table)

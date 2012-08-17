@@ -26,15 +26,17 @@ SPACING = 0.48
 
 
 
-def sub(a, b):
-    return a - b
+def make_notation(node):
+    assert isinstance(node, FunctionNode)
+    
+    args = node.fn.num_args
+    if args is None:
+        args = len(node.children)
 
-def add(a, b):
-    return a + b
-
-def equals(a, b):
-    return a == b
-
+    notation = [node.fn.name + '(']
+    for x in zip(range(args), [','] * (args - 1) + [')']):
+        notation.extend(x)
+    return notation
 
 
 def get_cairo_dim(cr, text):
@@ -90,7 +92,7 @@ class DisplayNode(object):
             return get_cairo_dim(cr, self.node.name())
         else:
             width, height = 0, 0
-            notation = self.node.fn.notation
+            notation = make_notation(self.node)
             for elt in notation:
                 w, h = (get_cairo_dim(cr, elt) 
                         if isinstance(elt, str) else 
@@ -107,7 +109,7 @@ class DisplayNode(object):
         if isinstance(self.node, ValueNode):
             render_text(cr, self.node.name(), x, y)
         else:
-            notation = self.node.fn.notation
+            notation = make_notation(self.node)
 
             for elt in notation:
                 w, h = None, None
@@ -222,10 +224,19 @@ class App:
 
 
 
+def sub(a, b):
+    return a - b
+
+def add(a, b):
+    return a + b
+
+def equals(x, y):
+    return x == y
+
 ft = RefTable()
-ft.add_variable('add', Function('add', add, 2, notation=['(', 0, '+', 1, ')']))
-ft.add_variable('sub', Function('sub', sub, 2, notation=['(', 0, '-', 1, ')']))
-ft.add_variable('equals', Function('equals', equals, 2, notation=[0, '=', 1]))
+ft.add_variable('add', Function('add', add, 2))
+ft.add_variable('sub', Function('sub', sub, 2))
+ft.add_variable('equals', Function('equals', equals, 2))
 
 all_rules = []
 with open('rules.txt') as f:

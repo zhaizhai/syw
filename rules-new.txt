@@ -1,0 +1,20 @@
+equals(sum(*a, x, *b), sum(*c)) = equals(sum(*a, *b), sum(*c, neg(x)))
+equals(sum(*a, neg(x), *b), sum(*c)) = equals(sum(*a, *b), sum(*c, x))
+
+sum(*a, sum(*b, x, *c), *d) = sum(*a, sum(*b, *c), x, *d)
+sum(*a, neg(sum(*b, x, *c)), *d) = sum(*a, neg(sum(*b, *c)), neg(x), *d)
+
+MACRO: recip(x) = div(1, x)
+
+div(sum(*a), b) = sum(*div(*a, b))
+
+div(a, div(b, c)) = div(prod(a, c), b)
+
+prod(a, sum(*b)) = sum(*prod(a, *b))
+
+prod(x, recip(y))
+
+META: equals(a, b) = equals(b, a)
+META: sum(*a, x, *b) = sum(*a, *b, x)
+META: neg(neg(x)) = x
+META: sum(*a, sum(*b, x)) = sum(*a, sum(*b), x)
