@@ -80,7 +80,7 @@ class PyGtkWidget(gtk.Widget):
         
     def _expose_cairo(self, event, cr):
 
-        text = 'joy'
+        text = ','
 
 	# Example is in 26.0 x 1.0 coordinate space 
 	cr.scale (240, 240)

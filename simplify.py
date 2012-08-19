@@ -3,74 +3,89 @@ from rules import *
 
 
 
-def assess(base, target, rule):
+def assess(base, node, rule):
     try:
         rule.map_onto(base)
     except AssertionError:
         return -1
 
-    handle = rule.internal_ref.reverse_lookup(target)
+    handle = rule.internal_ref.reverse_lookup(node)
     if handle is None:
         return -1
     return rule.min_initial_depth[handle] - rule.max_final_depth[handle]
 
-def find_best_pivot(target, rule):
-    ret = max((assess(node, target, rule), node) for node in get_ancestry(target))
-    return ret if ret[0] > 0 else None
+def find_best_rule(base, node, rule_matchers):
+    best_val, best_rule = -1, None
 
-def find_best_rule(target, rule_list):
-    best = None
-    for rule in rule_list:
-        best_pivot = find_best_pivot(target, rule)
-        if best_pivot is None:
-            continue
-        gain, pivot = best_pivot
+    for rule_matcher in rule_matchers:
+        for rule in rule_matcher.generate_rules(base):
+            val = assess(base, node, rule)
+            if val > best_val:
+                best_val, best_rule = val, rule
+                
+    return best_val, best_rule
 
-        if best is None or gain > best[0]:
-            best = (gain, pivot, rule)
-    return best
+def find_best_move(node, rule_matchers):
+    best_val, best_pivot, best_rule = 0, None, None
 
+    for pivot in get_ancestry(node):
+        val, rule = find_best_rule(pivot, node, rule_matchers)
+        if best_val < val:
+            best_val, best_pivot, best_rule = val, pivot, rule
 
-def move_towards(root, node, target, rule_list):
+    return best_pivot, best_rule
+
+def check_groups_together(base, node, target, rule_matchers):
+    for rule_matcher in rule_matchers:
+        for rule in rule_matcher.generate_rules(base):
+            rule.map_onto(base)
+            if rule.groups_together(rule.internal_ref.reverse_lookup(node),
+                                    rule.internal_ref.reverse_lookup(target)):
+                return rule
+    return None
+
+def recover(node, new_root):
+    if new_root.node_id == node.node_id:
+        return new_root
+
+    for child in new_root.children:
+        ret = recover(node, child)
+        if ret is not None:
+            return ret
+    return None
+    
+def move_towards(root, node, target, rule_matchers):
+    root_cp = root.copy()
+    node, target = recover(node, root_cp), recover(target, root_cp)
+    assert None not in (node, target)
 
     while True:
         base = lca(node, target)
-        
-        for rule in rule_list:
-            try:
-                rule.map_onto(base)
-            except AssertionError:
-                continue
 
-            if rule.groups_together(rule.internal_ref.reverse_lookup(node),
-                                    rule.internal_ref.reverse_lookup(target)):
+        quick_rule = check_groups_together(base, node, target, rule_matchers)
+        if quick_rule is not None:
+            if base is root_cp:
+                return apply_rule(base, quick_rule)
+            base.substitute(apply_rule(base, quick_rule))
+            return root_cp
 
-                if base is root:
-                    return apply_rule(base, rule)
-                base.substitute(apply_rule(base, rule))
-                return root
+        pivot, rule = find_best_move(node, rule_matchers)
 
-        best_rule = find_best_rule(node, rule_list)
-        if best_rule is None:
-            # TODO: what to do if fail
-            return None
-        gain, pivot, rule = best_rule
-        if gain <= 0:
-            # TODO: what to do if fail
+        if rule is None:
+            # couldn't make move
             return None
 
-        pivot.substitute(apply_rule(pivot, rule))
+        replacement = apply_rule(pivot, rule)
+        node = recover(node, replacement)
+        assert node is not None
+        pivot.substitute(replacement)
 
-        # TODO: we actually need to keep track of where new_node and
-        # new_target are
-        if lca(new_node, target) is not base:
-            return root
-        node = new_node
-
-
+        # TODO: figure out what the real assumptions should be
+        assert lca(node, target) is base
 
 
-if __name__ == 'main':
+
+if __name__ == '__main__':
 
     def equals(a, b):
         return a == b
@@ -86,20 +101,16 @@ if __name__ == 'main':
     ft.add_variable('sub', Function('sub', sub, 2))
     ft.add_variable('equals', Function('equals', equals, 2))
 
-    all_rules = []
-    with open('rules.txt') as f:
-        for line in f:
-            line = line.strip().replace(' ', '')
-            if not line:
-                continue
+    all_rules = load_from_file('rules.txt', ft)
 
-            first, second = line.split('=')
-            all_rules.append(Rule(parse(first, ft), parse(second, ft)))
-
-    root = parse('equals(add(x,add(y,z)),w)', ft)
+    root = parse('equals(add(add(x,add(y,z)),v),w)', ft)
     print_node(root)
 
-    root = move_towards(root, root.children[0].children[0], root.children[1], all_rules)
+    new_root = move_towards(root, root.children[0].children[0].children[0], 
+                            root.children[1], all_rules)
+
+    if new_root is not None:
+        root = new_root
     print_node(root)
 
 

@@ -22,30 +22,30 @@ from core import *
 from rules import *
 from simplify import *
 
+from notation import DefaultNotation, OpNotation, ModifierNotation
+
 SPACING = 0.48
 
-
+NOTATIONS = {'add': OpNotation('+'),
+             'sum': OpNotation('+'),
+             'sub': OpNotation('-'),
+             'neg': ModifierNotation('-'),
+             'equals': OpNotation('=')}
+DEFAULT_NOTATION = DefaultNotation()
 
 def make_notation(node):
-    assert isinstance(node, FunctionNode)
-    
-    args = node.fn.num_args
-    if args is None:
-        args = len(node.children)
-
-    notation = [node.fn.name + '(']
-    for x in zip(range(args), [','] * (args - 1) + [')']):
-        notation.extend(x)
-    return notation
-
+    if node.name() in NOTATIONS:
+        return NOTATIONS[node.name()].get_notation(node)
+    return DEFAULT_NOTATION.get_notation(node)
 
 def get_cairo_dim(cr, text):
-    width, height = cr.text_extents(text)[2:4]
-    return (width + 2 * SPACING, height + 2 * SPACING)
+    # width, height = cr.text_extents(text)[2:4]
+    height, width = cr.text_extents(text)[1:3]
+    return (width + 2 * SPACING, abs(height) + 2 * SPACING)
 
 def render_text(cr, text, x, y):
     w, h = get_cairo_dim(cr, text)
-    cr.move_to(x + SPACING, y + SPACING + h)
+    cr.move_to(x + SPACING, y - SPACING + h)
     cr.show_text(text)
 
 class Display(object):
@@ -222,33 +222,37 @@ class App:
 
 
 
+if __name__ == '__main__':
 
+    def sub(a, b):
+        return a - b
 
-def sub(a, b):
-    return a - b
+    def add(a, b):
+        return a + b
 
-def add(a, b):
-    return a + b
+    def _sum(*n):
+        return sum(*n)
 
-def equals(x, y):
-    return x == y
+    def neg(x):
+        return -x
 
-ft = RefTable()
-ft.add_variable('add', Function('add', add, 2))
-ft.add_variable('sub', Function('sub', sub, 2))
-ft.add_variable('equals', Function('equals', equals, 2))
+    def equals(x, y):
+        return x == y
 
-all_rules = []
-with open('rules.txt') as f:
-    for line in f:
-        line = line.strip().replace(' ', '')
-        if not line:
-            continue
+    ft = RefTable()
+    ft.add_variable('add', Function('add', add, 2))
+    ft.add_variable('sub', Function('sub', sub, 2))
 
-        first, second = line.split('=')
-        all_rules.append(Rule(parse(first, ft), parse(second, ft)))
+    ft.add_variable('sum', Function('sum', _sum, None,
+                                    precedence=200))
+    ft.add_variable('neg', Function('neg', neg, 1))
 
-root = parse('equals(add(x,add(y,z)),w)', ft)
-print_node(root)
+    ft.add_variable('equals', 
+                    Function('equals', equals, 2, precedence=100))
 
-App(root, all_rules)
+    all_rules = load_from_file('rules-new.txt', ft)
+
+    root = parse('equals(sum(x,y,z),w)', ft)
+    print_node(root)
+
+    App(root, all_rules)

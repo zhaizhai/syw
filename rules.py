@@ -1,7 +1,7 @@
 from core import *
 import collections
 
-class RuleGen:
+class RuleMatcher:
     def __init__(self, initial, final):
         self.initial = initial
         self.final = final
@@ -54,7 +54,9 @@ class RuleGen:
             if isinstance(rule_node, FunctionNode):
                 if (not isinstance(target_node, FunctionNode) or rule_node.name() != target_node.name()):
                     return
-            for _ in iter_children(rule_node.children, target_node.children):
+                for _ in iter_children(rule_node.children, target_node.children):
+                    yield
+            elif isinstance(rule_node, ValueNode):
                 yield
 
         def do_unpack_layer(node):
@@ -156,11 +158,17 @@ class Rule:
         return self.construct_node(result)
 
         
+def load_from_file(file_name, ft):
+    all_rules = []
+    with open(file_name) as f:
+        for line in f:
+            line = line.strip().replace(' ', '')
+            if not line or line[0] == '#':
+                continue
 
-
-class RuleParser:
-    def __init__(self):
-        pass
+            first, second = line.split('=')
+            all_rules.append(RuleMatcher(parse(first, ft), parse(second, ft)))
+    return all_rules
 
 
 def apply_rule(node, rule):
@@ -180,7 +188,11 @@ if __name__ == '__main__':
     def mult(x, y):
         return x * y
 
+    def equals(x, y):
+        return x == y
+
     ft = RefTable()
+    ft.add_variable('equals', Function('equals', equals, 2))
     ft.add_variable('add', Function('add', add, 2))
     ft.add_variable('sub', Function('sub', sub, 2))
     ft.add_variable('sum', Function('sum', _sum, None))
@@ -189,12 +201,13 @@ if __name__ == '__main__':
     root = parse('add(x,add(*y,z))', ft)
     root = parse('sum(sum(ww, wx, wy, wz), x, sum(yw, yx, yy, yz), z)', ft)
     root = parse('mult(sum(w, x, y), z)', ft)
+    root = parse('equals(add(x,add(y, z)), w)', ft)
 
-    initial = parse('mult(sum(*a), b)', ft)
-    final = parse('sum(*mult(*a, b))', ft)
-    rg = RuleGen(initial, final)
-    rg.generate_rules(root)
-
+    initial = parse('equals(add(a, b), c)', ft)
+    final = parse('equals(b, sub(c, a))', ft)
+    rg = RuleMatcher(initial, final)
+    for rule in rg.generate_rules(root):
+        print_node(rule.initial)
 
 # rule = Rule(parse('add(a,add(b,c))', ft), parse('add(add(a,b),c)', ft))
 # print_node(apply_rule(root, rule))

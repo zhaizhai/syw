@@ -1,9 +1,15 @@
+import uuid
+
+def create_node_uuid():
+    return uuid.uuid1().int
+
 class Function(object):
-    def __init__(self, name, fn, num_args):
+    def __init__(self, name, fn, num_args, precedence=-1):
         self.name = name
         self.fn = fn
         self.num_args = num_args
-        
+        self.precedence = precedence
+
     def eval(self, *args):
         return self.fn(*args)
 
@@ -36,9 +42,11 @@ class RefTable(object):
 
 
 class Node(object):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, node_id=None):
         self.parent = parent
         self.children = []
+        self.node_id = (node_id if node_id is not None 
+                        else create_node_uuid())
 
     def name(self):
         raise NotImplementedError()        
@@ -87,7 +95,7 @@ class ValueNode(Node):
         return self.value
 
     def copy(self):
-        return ValueNode(self.value)
+        return ValueNode(self.value, node_id=self.node_id)
 
 class FunctionNode(Node):
     def __init__(self, fn, **kw):
@@ -104,7 +112,7 @@ class FunctionNode(Node):
         return self.fn.name
 
     def copy(self):
-        cp = FunctionNode(self.fn)
+        cp = FunctionNode(self.fn, node_id=self.node_id)
         cp.children = [None] * len(self.children)
         for i, arg in enumerate(self.children):
             if arg:
@@ -125,7 +133,8 @@ class VarArgsNode(Node):
         return self.var_name
 
     def copy(self):
-        return VarArgsNode(self.var_name, pattern=self.pattern.copy())
+        return VarArgsNode(self.var_name, pattern=self.pattern.copy(),
+                           node_id=self.node_id)
 
     
 def print_node(node, depth=0):
