@@ -142,9 +142,11 @@ def print_node(node, depth=0):
     for n in node.children:
         print_node(n, depth=(depth + 1))
 
-def get_ancestry(n):
+def get_ancestry(n, limit=None):
     if n is None:
         return []
+    elif n is limit:
+        return [n]
     return get_ancestry(n.parent) + [n]
 
 def lca(n1, n2):

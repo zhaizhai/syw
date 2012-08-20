@@ -177,17 +177,20 @@ class App:
 
     def on_release(self, w, e):
         print e.x, e.y
-        # TODO: this is horrible... think of how to actually organize the class
 
         to_reach = self.disp.get_node(e.x, e.y)
 
         print 'moving', self.to_move, 'to', to_reach
 
-        self.root = move_towards(self.root, self.to_move, to_reach, self.rules)
-#        print_node(self.root)
-#        self.root.validate()
+        if to_reach is not None:
 
-        self.disp.reinit(self.root)
+            new_root = move_towards(self.root, self.to_move, to_reach, self.rules)
+            if new_root is not None:
+                self.root = new_root
+                # print_node(self.root)
+                # self.root.validate()
+                self.disp.reinit(self.root)
+
         self.to_move = None
         self.hover = None
         self.redraw()
@@ -195,7 +198,7 @@ class App:
     def expose(self, widget, event):
         cr = widget.window.cairo_create()
 
-        cr.set_font_size (24)
+        cr.set_font_size (40)
 
         # Drawing
 
@@ -204,7 +207,7 @@ class App:
         cr.fill()
 
         cr.set_source_rgb (0.0, 0.0, 0.0)
-        cr.select_font_face ("Georgia",
+        cr.select_font_face ("Times",
                              cairo.FONT_SLANT_NORMAL, 
                              cairo.FONT_WEIGHT_BOLD)
 

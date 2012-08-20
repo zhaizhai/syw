@@ -1,7 +1,15 @@
 equals(sum(*a, x, *b), sum(*c)) = equals(sum(*a, *b), sum(*c, neg(x)))
+equals(sum(*c), sum(*a, x, *b)) = equals(sum(*c, neg(x)), sum(*a, *b))
+
+sum(*a, sum(*b), *c) = sum(*a, *b, *c)
+
 equals(sum(*a), sum(*b, neg(x))) = equals(sum(*a, x), sum(*b))
 
 equals(sum(*a, x, *b), c) = equals(sum(*a, *b), sum(c, neg(x)))
+
+# AUTO: neg(neg(x)) = x
+# META: equals(a, b) = equals(b, a) (someday can use this to bootstrap more rules)
+
 
 # equals(sum(*a, neg(x), *b), sum(*c)) = equals(sum(*a, *b), sum(*c, x))
 
@@ -18,7 +26,5 @@ equals(sum(*a, x, *b), c) = equals(sum(*a, *b), sum(c, neg(x)))
 
 # prod(x, recip(y))
 
-# META: equals(a, b) = equals(b, a)
 # META: sum(*a, x, *b) = sum(*a, *b, x)
-# META: neg(neg(x)) = x
 # META: sum(*a, sum(*b, x)) = sum(*a, sum(*b), x)

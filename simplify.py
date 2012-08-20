@@ -78,10 +78,11 @@ def move_towards(root, node, target, rule_matchers):
         replacement = apply_rule(pivot, rule)
         node = recover(node, replacement)
         assert node is not None
-        pivot.substitute(replacement)
 
-        # TODO: figure out what the real assumptions should be
-        assert lca(node, target) is base
+        if pivot is root_cp:
+            root_cp = replacement
+        else:
+            pivot.substitute(replacement)
 
 
 

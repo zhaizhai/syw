@@ -12,6 +12,8 @@ class RuleMatcher:
             if isinstance(node, VarArgsNode):
                 self.unpack_vals[node.name()] = 0
 
+        # TODO: cache generated rules
+
     def unpack(self, node, n):
         assert isinstance(node, VarArgsNode)
 
