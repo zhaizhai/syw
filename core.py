@@ -147,7 +147,7 @@ def get_ancestry(n, limit=None):
         return []
     elif n is limit:
         return [n]
-    return get_ancestry(n.parent) + [n]
+    return get_ancestry(n.parent, limit=limit) + [n]
 
 def lca(n1, n2):
     anc1 = get_ancestry(n1)

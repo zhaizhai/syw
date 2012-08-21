@@ -161,16 +161,23 @@ class Rule:
 
         
 def load_from_file(file_name, ft):
-    all_rules = []
+    auto_rules = []
+    pivot_rules = []
     with open(file_name) as f:
         for line in f:
             line = line.strip().replace(' ', '')
             if not line or line[0] == '#':
                 continue
 
+            rule_type, line = line.split(':')
             first, second = line.split('=')
-            all_rules.append(RuleMatcher(parse(first, ft), parse(second, ft)))
-    return all_rules
+            rule = RuleMatcher(parse(first, ft), parse(second, ft))
+
+            if rule_type == 'RULE':
+                pivot_rules.append(rule)
+            elif rule_type == 'AUTO':
+                auto_rules.append(rule)
+    return (pivot_rules, auto_rules)
 
 
 def apply_rule(node, rule):

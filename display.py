@@ -128,7 +128,7 @@ class DisplayNode(object):
 
 
 class App:
-    def __init__(self, root, rules):
+    def __init__(self, root, rules, auto_rules):
         self.win = gtk.Window()
         self.win.set_default_size(500, 300)
         self.win.set_title('eqns')
@@ -136,6 +136,8 @@ class App:
 
         self.root = root
         self.rules = rules
+        self.auto_rules = auto_rules
+
         self.disp = Display(self.root)
         self.to_move = None
         self.hover = None
@@ -189,6 +191,7 @@ class App:
                 self.root = new_root
                 # print_node(self.root)
                 # self.root.validate()
+                self.root = apply_auto(self.root, self.auto_rules)
                 self.disp.reinit(self.root)
 
         self.to_move = None
@@ -253,9 +256,9 @@ if __name__ == '__main__':
     ft.add_variable('equals', 
                     Function('equals', equals, 2, precedence=100))
 
-    all_rules = load_from_file('rules-new.txt', ft)
+    pivot_rules, auto_rules = load_from_file('rules-new.txt', ft)
 
     root = parse('equals(sum(x,y,z),w)', ft)
     print_node(root)
 
-    App(root, all_rules)
+    App(root, pivot_rules, auto_rules)
