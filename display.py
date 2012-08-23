@@ -22,13 +22,15 @@ from core import *
 from rules import *
 from simplify import *
 
-from notation import DefaultNotation, OpNotation, ModifierNotation
+from notation import DefaultNotation, OpNotation, ModifierNotation, Notation
 
 SPACING = 0.48
 
 NOTATIONS = {'add': OpNotation('+'),
              'sum': OpNotation('+'),
              'sub': OpNotation('-'),
+             'mult': OpNotation(''),
+             'div': OpNotation('---', flow=Notation.VERT_FLOW),
              'neg': ModifierNotation('-'),
              'equals': OpNotation('=')}
 DEFAULT_NOTATION = DefaultNotation()
@@ -80,6 +82,7 @@ class DisplayNode(object):
         self.node = node
         self.display = display
         self.bbox = None
+        self.width, self.height = None, None
 
     def contains(self, x, y):
         if self.bbox is None:
@@ -92,39 +95,70 @@ class DisplayNode(object):
             return get_cairo_dim(cr, self.node.name())
         else:
             width, height = 0, 0
-            notation = make_notation(self.node)
+            orient, notation = make_notation(self.node)
+
             for elt in notation:
                 w, h = (get_cairo_dim(cr, elt) 
                         if isinstance(elt, str) else 
                         self.display.display_nodes[self.node.children[elt]].get_node_box(cr))
-                if h > height:
-                    height = h
-                width += w
+
+                if orient == Notation.HORIZ_FLOW:
+                    height = max((h, height))
+                    width += w
+                elif orient == Notation.VERT_FLOW:
+                    width = max((w, width))
+                    height += h
+                else:
+                    raise Exception("Invalid orientation %r" % orient)
+
             return width, height
 
+    def render_vert(self, cr, x, y, notation_elts):
+        # TODO: actually make vert
+        for elt in notation_elts:
+            w, h = None, None
+
+            if isinstance(elt, str):
+                w, h = get_cairo_dim(cr, elt)
+                render_text(cr, elt, x + (self.width - w) / 2, y)
+            else:
+                # TODO: this is rather clunky
+                child_display = self.display.display_nodes[self.node.children[elt]]
+                w, h = child_display.get_node_box(cr)
+                child_display.render_node_box(cr, x + (self.width - w) / 2, y)
+
+            y += h
+
+    def render_horiz(self, cr, x, y, notation_elts):
+        for elt in notation_elts:
+            w, h = None, None
+
+            if isinstance(elt, str):
+                w, h = get_cairo_dim(cr, elt)
+                render_text(cr, elt, x, y + (self.height - h) / 2)
+            else:
+                # TODO: this is rather clunky
+                child_display = self.display.display_nodes[self.node.children[elt]]
+                w, h = child_display.get_node_box(cr)
+                child_display.render_node_box(cr, x, y + (self.height - h) / 2)
+
+            x += w + (0.005 if elt == ',' else 0.0)
+
+
     def render_node_box(self, cr, x, y):
-        width, height = self.get_node_box(cr)
-        self.bbox = (x, y, x + width, y + height)
+        self.width, self.height = self.get_node_box(cr)
+        self.bbox = (x, y, x + self.width, y + self.height)
 
         if isinstance(self.node, ValueNode):
             render_text(cr, self.node.name(), x, y)
         else:
-            notation = make_notation(self.node)
-
-            for elt in notation:
-                w, h = None, None
-
-                if isinstance(elt, str):
-                    w, h = get_cairo_dim(cr, elt)
-                    render_text(cr, elt, x, y + (height - h) / 2)
-                else:
-                    child_display = self.display.display_nodes[self.node.children[elt]]
-                    w, h = child_display.get_node_box(cr)
-                    child_display.render_node_box(cr, x, y + (height - h) / 2)
-
-                x += w + (0.005 if elt == ',' else 0.0)
-
-
+            orient, notation_elts = make_notation(self.node)
+            
+            assert orient in (Notation.HORIZ_FLOW, Notation.VERT_FLOW)
+            if orient == Notation.HORIZ_FLOW:
+                self.render_horiz(cr, x, y, notation_elts)
+            else:
+                self.render_vert(cr, x, y, notation_elts)
 
 
 class App:
@@ -236,6 +270,12 @@ if __name__ == '__main__':
     def add(a, b):
         return a + b
 
+    def div(a, b):
+        return a / b
+
+    def mult(a, b):
+        return a * b
+
     def _sum(*n):
         return sum(*n)
 
@@ -246,8 +286,12 @@ if __name__ == '__main__':
         return x == y
 
     ft = RefTable()
-    ft.add_variable('add', Function('add', add, 2))
-    ft.add_variable('sub', Function('sub', sub, 2))
+#    ft.add_variable('add', Function('add', add, 2))
+#    ft.add_variable('sub', Function('sub', sub, 2))
+    ft.add_variable('div', Function('div', sub, 2,
+                                    precedence=300))
+    ft.add_variable('mult', Function('mult', sub, 2,
+                                     precedence=300))
 
     ft.add_variable('sum', Function('sum', _sum, None,
                                     precedence=200))
@@ -258,7 +302,8 @@ if __name__ == '__main__':
 
     pivot_rules, auto_rules = load_from_file('rules-new.txt', ft)
 
-    root = parse('equals(sum(x,y,z),w)', ft)
+#    root = parse('equals(sum(x,y,z),w)', ft)
+    root = parse('equals(sum(div(x,y),z),w)', ft)
     print_node(root)
 
     App(root, pivot_rules, auto_rules)

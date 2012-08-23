@@ -2,6 +2,9 @@ RULE: equals(sum(*a, x, *b), sum(*c)) = equals(sum(*a, *b), sum(*c, neg(x)))
 RULE: equals(sum(*c), sum(*a, x, *b)) = equals(sum(*c, neg(x)), sum(*a, *b))
 
 RULE: equals(sum(*a, x, *b), c) = equals(sum(*a, *b), sum(c, neg(x)))
+
+RULE: equals(sum(div(a, x), *c), d) = equals(sum(a, *mult(*c, x)), mult(x, d))
+
 AUTO: neg(neg(x)) = x
 
 #sum(*a, sum(*b), *c) = sum(*a, *b, *c)
