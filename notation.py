@@ -34,9 +34,10 @@ class DefaultNotation(Notation):
         return (self.HORIZ_FLOW, notation)
 
 class OpNotation(Notation):
-    def __init__(self, opchar, flow=Notation.HORIZ_FLOW):
+    def __init__(self, opchar, flow=Notation.HORIZ_FLOW, if_no_args=None):
         self.opchar = opchar
         self.flow = flow
+        self.if_no_args = if_no_args or []
 
     @with_parens
     def get_notation(self, node):
@@ -45,6 +46,8 @@ class OpNotation(Notation):
         args = node.fn.num_args
         if args is None:
             args = len(node.children)
+        if args == 0:
+            return (self.flow, self.if_no_args)
 
         notation = [0]
         for x in zip([self.opchar] * (args - 1), range(1, args)):

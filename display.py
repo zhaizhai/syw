@@ -27,9 +27,9 @@ from notation import DefaultNotation, OpNotation, ModifierNotation, Notation
 SPACING = 0.48
 
 NOTATIONS = {'add': OpNotation('+'),
-             'sum': OpNotation('+'),
+             'sum': OpNotation('+', if_no_args=['0']),
              'sub': OpNotation('-'),
-             'mult': OpNotation(''),
+             'mult': OpNotation('', if_no_args=['1']),
              'div': OpNotation('---', flow=Notation.VERT_FLOW),
              'neg': ModifierNotation('-'),
              'equals': OpNotation('=')}
