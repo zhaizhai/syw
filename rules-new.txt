@@ -1,11 +1,38 @@
+# additive
+
 RULE: equals(sum(*a, x, *b), sum(*c)) = equals(sum(*a, *b), sum(*c, neg(x)))
+RULE: equals(sum(*a, *b), sum(*c, neg(x))) = equals(sum(*a, x, *b), sum(*c))
 RULE: equals(sum(*c), sum(*a, x, *b)) = equals(sum(*c, neg(x)), sum(*a, *b))
+RULE: equals(sum(*c, neg(x)), sum(*a, *b)) = equals(sum(*c), sum(*a, x, *b))
 
 RULE: equals(sum(*a, x, *b), c) = equals(sum(*a, *b), sum(c, neg(x)))
+RULE: equals(sum(*a, *b), sum(c, neg(x))) = equals(sum(*a, x, *b), c)
+RULE: equals(c, sum(*a, x, *b)) = equals(sum(c, neg(x)), sum(*a, *b))
+RULE: equals(sum(c, neg(x)), sum(*a, *b)) = equals(c, sum(*a, x, *b))
 
-RULE: equals(sum(div(a, x), *c), d) = equals(sum(a, *mult(*c, x)), mult(x, d))
+RULE: equals(x, a) = equals(sum(), sum(a, neg(x)))
+RULE: equals(a, x) = equals(sum(a, neg(x)), sum())
+
+# multiplicative
+
+RULE: equals(sum(*a, div(b, x), *c), d) = equals(sum(*mult(*a, x), b, *mult(*c, x)), mult(x, d))
+
+# simplification
 
 AUTO: neg(neg(x)) = x
+AUTO: sum(x) = x
+AUTO: sum(*a, sum(*b), *c) = sum(*a, *b, *c)
+
+AUTO: mult(x, sum()) = sum()
+AUTO: mult(*a, neg(x), *b) = neg(mult(*a, x, *b))
+
+
+
+
+
+
+
+
 
 #sum(*a, sum(*b), *c) = sum(*a, *b, *c)
 
@@ -14,7 +41,7 @@ AUTO: neg(neg(x)) = x
 
 
 # META: equals(a, b) = equals(b, a) (someday can use this to bootstrap more rules)
-
+# META: sum(a) = a
 
 # equals(sum(*a, neg(x), *b), sum(*c)) = equals(sum(*a, *b), sum(*c, x))
 
