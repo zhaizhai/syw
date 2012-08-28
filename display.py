@@ -215,10 +215,9 @@ class App:
         print e.x, e.y
 
         to_reach = self.disp.get_node(e.x, e.y)
+        print_node(self.root)
 
         if None not in (self.to_move, to_reach):
-            print 'moving', self.to_move, 'to', to_reach
-        
             new_root = move_towards(self.root, self.to_move, to_reach, self.rules)
             if new_root is not None:
                 self.root = new_root

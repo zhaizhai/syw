@@ -91,6 +91,7 @@ class Rule:
         self.final = final
 
         self.internal_ref = RefTable()
+
         self.min_initial_depth = {}
         self.max_final_depth = {}
         self.list_initial_nodes = collections.defaultdict(list)
@@ -145,7 +146,8 @@ class Rule:
     # constructs tree from template
     def construct_node(self, node, parent=None):
         if not isinstance(node, FunctionNode):
-            ret = self.internal_ref.get_variable(node.value).copy()
+            to_copy = self.internal_ref.get_variable(node.value)
+            ret = to_copy.copy(retain_id=('@' not in node.tags))
             ret.parent = parent
             return ret
         

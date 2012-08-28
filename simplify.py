@@ -70,6 +70,7 @@ def recover(node, new_root):
     return None
     
 def move_towards(root, node, target, rule_matchers):
+    print 'move %r towards %r' % (node, target)
         
     root_cp = root.copy()
     node, target = recover(node, root_cp), recover(target, root_cp)
@@ -109,6 +110,7 @@ def move_towards(root, node, target, rule_matchers):
         node = recover(node, replacement)
         assert node is not None
 
+        # TODO: does this part make sense?
         if pivot in get_ancestry(target):
             if pivot is root_cp:
                 return replacement

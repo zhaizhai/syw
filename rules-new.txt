@@ -15,7 +15,7 @@ RULE: equals(a, x) = equals(sum(a, neg(x)), sum())
 
 # multiplicative
 
-RULE: equals(sum(*a, div(b, x), *c), d) = equals(sum(*mult(*a, x), b, *mult(*c, x)), mult(x, d))
+RULE: equals(sum(*a, div(b, x), *c), d) = equals(sum(*mult(*a, @x), b, *mult(*c, @x)), mult(x, d))
 
 # simplification
 
