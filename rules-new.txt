@@ -17,46 +17,19 @@ RULE: equals(a, x) = equals(sum(a, neg(x)), sum())
 
 RULE: equals(sum(*a, div(b, x), *c), d) = equals(sum(*mult(*a, @x), b, *mult(*c, @x)), mult(x, d))
 
+RULE: equals(sum(*a, mult(*b, x, *c), *d), e) = equals(sum(*div(*a, @x), mult(*b, *c), *div(*d, @x)), div(e, x))
+
 # simplification
 
 AUTO: neg(neg(x)) = x
 AUTO: sum(x) = x
+AUTO: mult(x) = x
 AUTO: sum(*a, sum(*b), *c) = sum(*a, *b, *c)
 
 AUTO: mult(x, sum()) = sum()
 AUTO: mult(*a, neg(x), *b) = neg(mult(*a, x, *b))
 
+AUTO: mult(*a, div(b, c)) = div(mult(*a, b), c)
+AUTO: div(mult(*a, x, *b), x) = mult(*a, *b)
 
-
-
-
-
-
-
-
-#sum(*a, sum(*b), *c) = sum(*a, *b, *c)
-
-#equals(sum(*a), sum(*b, neg(x))) = equals(sum(*a, x), sum(*b))
-
-
-
-# META: equals(a, b) = equals(b, a) (someday can use this to bootstrap more rules)
-# META: sum(a) = a
-
-# equals(sum(*a, neg(x), *b), sum(*c)) = equals(sum(*a, *b), sum(*c, x))
-
-# sum(*a, sum(*b, x, *c), *d) = sum(*a, sum(*b, *c), x, *d)
-# sum(*a, neg(sum(*b, x, *c)), *d) = sum(*a, neg(sum(*b, *c)), neg(x), *d)
-
-# MACRO: recip(x) = div(1, x)
-
-# div(sum(*a), b) = sum(*div(*a, b))
-
-# div(a, div(b, c)) = div(prod(a, c), b)
-
-# prod(a, sum(*b)) = sum(*prod(a, *b))
-
-# prod(x, recip(y))
-
-# META: sum(*a, x, *b) = sum(*a, *b, x)
-# META: sum(*a, sum(*b, x)) = sum(*a, sum(*b), x)
+#META: equals(a, b) = equals(b, a)

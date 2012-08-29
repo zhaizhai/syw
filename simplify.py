@@ -2,6 +2,7 @@ from core import *
 from rules import *
 
 
+
 def apply_auto(root, auto_matchers):
     new_children = []
     for child in root.children:
@@ -18,11 +19,7 @@ def apply_auto(root, auto_matchers):
 
 
 def assess(base, node, rule):
-    try:
-        rule.map_onto(base)
-    except AssertionError:
-        return -1
-
+    rule.map_onto(base)
     handle = rule.internal_ref.reverse_lookup(node)
     if handle != 'x': # TODO
         return -1
@@ -50,14 +47,14 @@ def find_best_move(node, rule_matchers, limit=None):
 
     return best_pivot, best_rule
 
-def check_groups_together(base, node, target, rule_matchers):
-    for rule_matcher in rule_matchers:
-        for rule in rule_matcher.generate_rules(base):
-            rule.map_onto(base)
-            if rule.groups_together(rule.internal_ref.reverse_lookup(node),
-                                    rule.internal_ref.reverse_lookup(target)):
-                return rule
-    return None
+# def check_groups_together(base, node, target, rule_matchers):
+#     for rule_matcher in rule_matchers:
+#         for rule in rule_matcher.generate_rules(base):
+#             rule.map_onto(base)
+#             if rule.groups_together(rule.internal_ref.reverse_lookup(node),
+#                                     rule.internal_ref.reverse_lookup(target)):
+#                 return rule
+#     return None
 
 def recover(node, new_root):
     if new_root.node_id == node.node_id:
@@ -110,7 +107,8 @@ def move_towards(root, node, target, rule_matchers):
         node = recover(node, replacement)
         assert node is not None
 
-        # TODO: does this part make sense?
+        # TODO: does this part even make sense? don't we potentially
+        # need to recover target in replacement?
         if pivot in get_ancestry(target):
             if pivot is root_cp:
                 return replacement

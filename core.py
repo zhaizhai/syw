@@ -158,6 +158,30 @@ def get_ancestry(n, limit=None):
         return [n]
     return get_ancestry(n.parent, limit=limit) + [n]
 
+# determine whether node1 and node2 should be considered equal
+# VarArgsNodes always compare to False
+def check_equals(node1, node2):
+    if node1 is node2:
+        return True
+    if type(node1) != type(node2):
+        return False
+
+    if isinstance(node1, ValueNode):
+        # TODO: case where node1 and node2 are numbers?
+        return node1.name() == node2.name()
+    elif isinstance(node1, VarArgsNode):
+        return False
+    elif isinstance(node1, FunctionNode):
+        if len(node1.children) != len(node2.children):
+            return False
+        if node1.fn is not node2.fn:
+            return False
+        return all(check_equals(child1, child2) 
+                   for child1, child2 
+                   in zip(node1.children, node2.children))
+    # TODO: raise exception?
+    return False
+
 def lca(n1, n2):
     anc1 = get_ancestry(n1)
     anc2 = get_ancestry(n2)

@@ -8,6 +8,8 @@ class RuleMatcher:
         self.internal_ref = RefTable()
 
         self.unpack_vals = {}
+        # TODO: we didn't even set internal ref yet! currently it
+        # doesn't do anything
         for node in self.internal_ref.values():
             if isinstance(node, VarArgsNode):
                 self.unpack_vals[node.name()] = 0
@@ -81,14 +83,18 @@ class RuleMatcher:
 
             rule_final = self.final.copy()
             do_unpack_layer(rule_final)
-            
-            yield Rule(rule_initial, rule_final)
+
+            rule = Rule(rule_initial, rule_final)
+            rule.map_onto(target)
+            if rule.is_consistent():
+                yield rule            
         
 
 class Rule:
     def __init__(self, initial, final):
         self.initial = initial
         self.final = final
+        self.target = None
 
         self.internal_ref = RefTable()
 
@@ -131,17 +137,29 @@ class Rule:
         
     # constructs a mapping of variables in self.initial to target
     def map_onto(self, target):
+        self.target = target
         self.internal_ref.clear()
 
         def do_mapping(init_node, target_node):
             if not isinstance(init_node, FunctionNode):
-                assert self.internal_ref.get_variable(init_node.value) is None
+                # may overwrite existing value..
                 self.internal_ref.add_variable(init_node.value, target_node)
                 return
+            # TODO: probably assert function equality?
             assert init_node.name() == target_node.name()
             for i in xrange(len(init_node.children)):
                 do_mapping(init_node.children[i], target_node.children[i])
         do_mapping(self.initial, target)
+
+    # determines whether the current mapping is consistent
+    def is_consistent(self):
+        def check_consistent(init_node, target_node):
+            if isinstance(init_node, ValueNode):
+                return check_equals(target_node, self.internal_ref.get_variable(init_node.value))
+            return all(check_consistent(init_child, target_child) 
+                       for init_child, target_child 
+                       in zip(init_node.children, target_node.children))
+        return check_consistent(self.initial, self.target)
 
     # constructs tree from template
     def construct_node(self, node, parent=None):
