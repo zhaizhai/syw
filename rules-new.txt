@@ -15,9 +15,13 @@ RULE: equals(a, x) = equals(sum(a, neg(x)), sum())
 
 # multiplicative
 
-RULE: equals(sum(*a, div(b, x), *c), d) = equals(sum(*mult(*a, @x), b, *mult(*c, @x)), mult(x, d))
+RULE: sum(*a, div(b, x), *c) = div(sum(*mult(*a, @x), b, *mult(*c, @x)), x)
+# because depth is kept the same, could this lead to infinite loop?
+RULE: equals(div(a, x), b) = equals(a, mult(b, x))
+RULE: div(a, div(b, x)) = div(mult(a, x), b)
 
 RULE: equals(sum(*a, mult(*b, x, *c), *d), e) = equals(sum(*div(*a, @x), mult(*b, *c), *div(*d, @x)), div(e, x))
+
 
 # simplification
 

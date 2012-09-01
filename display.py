@@ -301,7 +301,8 @@ if __name__ == '__main__':
     pivot_rules, auto_rules = load_from_file('rules-new.txt', ft)
 
 #    root = parse('equals(sum(x,y,z),w)', ft)
-    root = parse('equals(sum(div(x,y),z),w)', ft)
+#    root = parse('equals(sum(div(x,y),z),w)', ft)
+    root = parse('equals(div(x, sum(y, div(x, z))), w)', ft)
     print_node(root)
 
     App(root, pivot_rules, auto_rules)

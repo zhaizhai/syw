@@ -116,6 +116,7 @@ def move_towards(root, node, target, rule_matchers):
                 pivot.substitute(replacement)
                 return root_cp
 
+        pivot.substitute(replacement)
         applied_rule = True
 
 
