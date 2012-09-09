@@ -218,13 +218,18 @@ class App:
         print_node(self.root)
 
         if None not in (self.to_move, to_reach):
-            new_root = move_towards(self.root, self.to_move, to_reach, self.rules)
-            if new_root is not None:
-                self.root = new_root
-                # print_node(self.root)
-                # self.root.validate()
-                self.root = apply_auto(self.root, self.auto_rules)
-                self.disp.reinit(self.root)
+            manip = Manipulator(self.root, self.rules)
+            manip.move_towards(self.to_move, to_reach, desired_parent=None) # TODO
+            self.root = manip.root
+            self.root = apply_auto(self.root, self.auto_rules)
+            self.disp.reinit(self.root)
+            # new_root = move_towards(self.root, self.to_move, to_reach, self.rules)
+            # if new_root is not None:
+            #     self.root = new_root
+            #     # print_node(self.root)
+            #     # self.root.validate()
+            #     self.root = apply_auto(self.root, self.auto_rules)
+            #     self.disp.reinit(self.root)
 
         self.to_move = None
         self.hover = None

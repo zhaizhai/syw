@@ -98,30 +98,27 @@ class Rule:
 
         self.internal_ref = RefTable()
 
-        self.min_initial_depth = {}
-        self.max_final_depth = {}
-        self.list_initial_nodes = collections.defaultdict(list)
-        self.list_final_nodes = collections.defaultdict(list)
+        def find_node_by_val(node, val):
+            if isinstance(node, ValueNode):
+                return (node 
+                        if node.name() == val 
+                        and '@' not in node.tags
+                        else None)
+            if isinstance(node, VarArgsNode):
+                return find_node_by_val(node.pattern, val)
 
-        def handle_initial(node, depth=None):
-            if not isinstance(node, ValueNode) or depth is None:
-                return
-            self.list_initial_nodes[node.value].append(node)
-            if (node.value not in self.min_initial_depth
-                or self.min_initial_depth > depth):
-                self.min_initial_depth[node.value] = depth
+            ret = None
+            for child in node.children:
+                new_ret = find_node_by_val(child, val)
+                assert None in (ret, new_ret)
+                ret = ret or new_ret
+            return ret
 
-        def handle_final(node, depth=None):
-            if not isinstance(node, ValueNode):
-                return
-            self.list_final_nodes[node.value].append(node)
-            if (node.value not in self.max_final_depth
-                or self.max_final_depth < depth):
-                self.max_final_depth[node.value] = depth
+        # TODO: this should be guaranteed to exist and unique,
+        # although it might be inside a pattern...
+        self.final_node = find_node_by_val(self.final, 'x')
 
-        self.initial.recurse(handle_initial)
-        self.final.recurse(handle_final)
-
+    # TODO: probably deprecate this
     def groups_together(self, val1, val2):
         if (val1 is None or val2 is None
             or not self.list_final_nodes.has_key(val1)
